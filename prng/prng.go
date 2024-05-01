@@ -1,6 +1,9 @@
 package prng
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"fmt"
+)
 
 /*
 
@@ -26,6 +29,23 @@ type UnshuffleInfo struct {
 	Displacements [4]int
 }
 
+const (
+	A = iota
+	B = iota
+	C = iota
+	D = iota
+)
+
+var unshuffleTable [24]UnshuffleInfo = [24]UnshuffleInfo{
+	{ [4]int{0, 1, 2, 3}, [4]int{0, 1, 2, 3} }, // ABCD	ABCD
+	{ [4]int{0, 1, 3, 2}, [4]int{0, 1, 3, 2} }, // ABDC	ABDC
+	{ [4]int{0, 2, 1, 3}, [4]int{0, 2, 1, 3} }, // ACBD	ACBD
+	{ [4]int{0, 3, 1, 2}, [4]int{0, 2, 3, 1} }, // ACDB	ADBC
+	{ [4]int{0, 2, 3, 1}, [4]int{0, 3, 1, 2} }, // ADBC	ACDB
+	{ [4]int{0, 3, 2, 1}, [4]int{0, 3, 2, 1} }, // ADCB	ADCB
+	// aint no way im doing all this by hand lol
+}
+
 /*
 
 ex. ACDB -> ADBC
@@ -48,6 +68,15 @@ to get block C (ShuffledPos[2]),
 
 to get block D (ShuffledPos[3]),
 (2 + 3) % 4 = 1
+
+now we have the unshuffled positions [0, 2, 3, 1] -> ADBC
+each block is 32 bytes long, so we can access any block in constant time with offset calculations
+
+eg. get block C -> unshuffled[2] = 3 --> 0x8 + (3 * 0x20) = 0x63 (starting position for block C)
+
+questions i still have:
+- are the decrypted values just represented as little endian? or big? (hopefully LE, since that's what it seems like the ROM stuck to thus far)
+
 */
 
 func Init(checksum uint16, personality uint32) PRNG {
