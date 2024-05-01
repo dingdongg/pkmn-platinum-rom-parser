@@ -116,6 +116,15 @@ func (prng *PRNG) Next() uint16 {
 	return uint16(result)
 }
 
+func getPokemonBlock(buf []byte, block int, personality int) []byte {
+	shiftValue := ((personality & 0x3E000) >> 0xD) % 24
+	unshuffleInfo := unshuffleTable[shiftValue]
+	startAddr := unshuffleInfo.UnshuffledPos(block)
+	blockStart := buf[startAddr:startAddr + BLOCK_SIZE_BYTES]
+
+	return blockStart
+}
+
 func (prng *PRNG) DecryptPokemons(ciphertext []byte) {
 	var plaintext_buf []byte
 
@@ -127,14 +136,19 @@ func (prng *PRNG) DecryptPokemons(ciphertext []byte) {
 		plaintext_buf = append(plaintext_buf, byte(plaintext & 0x00FF), byte(plaintext & 0xFF00))
 	}
 
+	plaintext_buf = append(ciphertext[:8], plaintext_buf...)
+
+	fmt.Printf("% x\n", plaintext_buf)
+
 	// 2. de-shuffle
 	personalityIndex := ((prng.Personality & 0x3E000) >> 0xD) % 24
 	unshuffleInfo := unshuffleTable[personalityIndex]
 
-	fmt.Println(unshuffleInfo)
-
 	startA := unshuffleInfo.UnshuffledPos(A)
 	blockA := plaintext_buf[startA:startA + BLOCK_SIZE_BYTES]
+
+	// fmt.Printf("start addr for block A: %x\n", startA)
+	// fmt.Printf("% x\n", blockA)
 
 	natPokedexId := binary.LittleEndian.Uint16(blockA[:0x2])
 
