@@ -1,4 +1,4 @@
-package shuffle_table_parser
+package shuffler
 
 import (
 	"fmt"
@@ -39,14 +39,15 @@ func Extract() {
 		tokens := strings.FieldsFunc(r, func(r rune) bool { return r == '\t' })
 		sequences[i] = [2]string{tokens[1], tokens[2]}
 
-		GetShuffleInfo(sequences[i])
+		fmt.Println(getShuffleInfo(sequences[i]))
 	}
 }
 
-func GetShuffleInfo(sequence [2]string) {
-	fmt.Printf(
-		"{ [4]int{%c, %c, %c, %c}, [4]int{%c, %c, %c, %c} },",
+func getShuffleInfo(sequence [2]string) string {
+	return fmt.Sprintf(
+		"{ [4]int{%c, %c, %c, %c}, [4]int{%c, %c, %c, %c} }, // %s %s",
 		sequence[0][0], sequence[0][1], sequence[0][2], sequence[0][3],
 		sequence[1][0], sequence[1][1], sequence[1][2], sequence[1][3],
+		sequence[0], sequence[1],
 	)
 }

@@ -36,14 +36,34 @@ const (
 	D = iota
 )
 
+const BLOCK_SIZE_BYTES uint = 32
+
+// populated with results from the shuffler package!
 var unshuffleTable [24]UnshuffleInfo = [24]UnshuffleInfo{
-	{ [4]int{0, 1, 2, 3}, [4]int{0, 1, 2, 3} }, // ABCD	ABCD
-	{ [4]int{0, 1, 3, 2}, [4]int{0, 1, 3, 2} }, // ABDC	ABDC
-	{ [4]int{0, 2, 1, 3}, [4]int{0, 2, 1, 3} }, // ACBD	ACBD
-	{ [4]int{0, 3, 1, 2}, [4]int{0, 2, 3, 1} }, // ACDB	ADBC
-	{ [4]int{0, 2, 3, 1}, [4]int{0, 3, 1, 2} }, // ADBC	ACDB
-	{ [4]int{0, 3, 2, 1}, [4]int{0, 3, 2, 1} }, // ADCB	ADCB
-	// aint no way im doing all this by hand lol
+	{ [4]int{A, B, C, D}, [4]int{A, B, C, D} }, // ABCD ABCD
+	{ [4]int{A, B, D, C}, [4]int{A, B, D, C} }, // ABDC ABDC
+	{ [4]int{A, C, B, D}, [4]int{A, C, B, D} }, // ACBD ACBD
+	{ [4]int{A, C, D, B}, [4]int{A, D, B, C} }, // ACDB ADBC
+	{ [4]int{A, D, B, C}, [4]int{A, C, D, B} }, // ADBC ACDB
+	{ [4]int{A, D, C, B}, [4]int{A, D, C, B} }, // ADCB ADCB
+	{ [4]int{B, A, C, D}, [4]int{B, A, C, D} }, // BACD BACD
+	{ [4]int{B, A, D, C}, [4]int{B, A, D, C} }, // BADC BADC
+	{ [4]int{B, C, A, D}, [4]int{C, A, B, D} }, // BCAD CABD
+	{ [4]int{B, C, D, A}, [4]int{D, A, B, C} }, // BCDA DABC
+	{ [4]int{B, D, A, C}, [4]int{C, A, D, B} }, // BDAC CADB
+	{ [4]int{B, D, C, A}, [4]int{D, A, C, B} }, // BDCA DACB
+	{ [4]int{C, A, B, D}, [4]int{B, C, A, D} }, // CABD BCAD
+	{ [4]int{C, A, D, B}, [4]int{B, D, A, C} }, // CADB BDAC
+	{ [4]int{C, B, A, D}, [4]int{C, B, A, D} }, // CBAD CBAD
+	{ [4]int{C, B, D, A}, [4]int{D, B, A, C} }, // CBDA DBAC
+	{ [4]int{C, D, A, B}, [4]int{C, D, A, B} }, // CDAB CDAB
+	{ [4]int{C, D, B, A}, [4]int{D, C, A, B} }, // CDBA DCAB
+	{ [4]int{D, A, B, C}, [4]int{B, C, D, A} }, // DABC BCDA
+	{ [4]int{D, A, C, B}, [4]int{B, D, C, A} }, // DACB BDCA
+	{ [4]int{D, B, A, C}, [4]int{C, B, D, A} }, // DBAC CBDA
+	{ [4]int{D, B, C, A}, [4]int{D, B, C, A} }, // DBCA DBCA
+	{ [4]int{D, C, A, B}, [4]int{C, D, B, A} }, // DCAB CDBA
+	{ [4]int{D, C, B, A}, [4]int{D, C, B, A} }, // DCBA DCBA
 }
 
 /*
@@ -108,7 +128,10 @@ func (prng *PRNG) DecryptPokemons(ciphertext []byte) {
 	}
 
 	// 2. de-shuffle
+	personalityIndex := ((prng.Personality & 0x3E000) >> 0xD) % 24
+	unshuffleInfo := unshuffleTable[personalityIndex]
 
+	fmt.Println(unshuffleInfo)
 }
 /*
 

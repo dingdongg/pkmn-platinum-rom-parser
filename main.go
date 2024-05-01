@@ -8,6 +8,8 @@ import (
 	"os"
 
 	"dingdongg/pkmn-platinum-rom-parser/char_encoder"
+	"dingdongg/pkmn-platinum-rom-parser/shuffler.go"
+	// "dingdongg/pkmn-platinum-rom-parser/prng"
 )
 
 const CHUNK_SIZE = 1576
@@ -60,4 +62,6 @@ func main() {
 
 	checksum := binary.LittleEndian.Uint16(buf[CHECKSUM_OFFSET:CHECKSUM_OFFSET + CHECKSUM_SIZE])
 	fmt.Println(checksum)
+
+	shuffler.Extract()
 }
