@@ -99,6 +99,12 @@ questions i still have:
 
 */
 
+func (usi UnshuffleInfo) UnshuffledPos(block int) uint {
+	metadataOffset := uint(0x8)
+	startAddr := uint((usi.ShuffledPos[block] + usi.Displacements[block]) % 4)
+	return metadataOffset + (startAddr * BLOCK_SIZE_BYTES)
+} 
+
 func Init(checksum uint16, personality uint32) PRNG {
 	return PRNG{checksum, personality, 0}
 }
@@ -110,19 +116,13 @@ func (prng *PRNG) Next() uint16 {
 	return uint16(result)
 }
 
-func (prng *PRNG) Decrypt(word []byte) uint16 {
-	uint16Word := binary.LittleEndian.Uint16(word)
-	decrypted := uint16Word ^ prng.Next()
-	return decrypted
-}
-
 func (prng *PRNG) DecryptPokemons(ciphertext []byte) {
 	var plaintext_buf []byte
 
 	// 1. XOR to get plaintext words
 	for i := 0x8; i < 0x87; i += 0x2 {
 		// ...
-		word := binary.LittleEndian.Uint16(ciphertext[i:i + 2])
+		word := binary.BigEndian.Uint16(ciphertext[i:i + 2])
 		plaintext := word ^ prng.Next()
 		plaintext_buf = append(plaintext_buf, byte(plaintext & 0x00FF), byte(plaintext & 0xFF00))
 	}
@@ -132,6 +132,13 @@ func (prng *PRNG) DecryptPokemons(ciphertext []byte) {
 	unshuffleInfo := unshuffleTable[personalityIndex]
 
 	fmt.Println(unshuffleInfo)
+
+	startA := unshuffleInfo.UnshuffledPos(A)
+	blockA := plaintext_buf[startA:startA + BLOCK_SIZE_BYTES]
+
+	natPokedexId := binary.LittleEndian.Uint16(blockA[:0x2])
+
+	fmt.Printf("national dex ID: %d\n", natPokedexId)
 }
 /*
 
