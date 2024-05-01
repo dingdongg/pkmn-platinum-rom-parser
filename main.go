@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"dingdongg/pkmn-platinum-rom-parser/char_encoder"
-	"dingdongg/pkmn-platinum-rom-parser/shuffler.go"
+	"dingdongg/pkmn-platinum-rom-parser/prng"
 	// "dingdongg/pkmn-platinum-rom-parser/prng"
 )
 
@@ -63,5 +63,8 @@ func main() {
 	checksum := binary.LittleEndian.Uint16(buf[CHECKSUM_OFFSET:CHECKSUM_OFFSET + CHECKSUM_SIZE])
 	fmt.Println(checksum)
 
-	shuffler.Extract()
+	// shuffler.Extract()
+	prng := prng.Init(checksum, personality)
+	
+	prng.DecryptPokemons(buf[PERSONALITY_OFFSET:])
 }
