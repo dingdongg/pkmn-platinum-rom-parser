@@ -18,6 +18,12 @@ const MONEY_SIZE = 4
 const GENDER_OFFSET = 0x80
 const GENDER_SIZE = 1
 
+const PERSONALITY_OFFSET = 0xa0
+const PERSONALITY_SIZE = 4
+
+const CHECKSUM_OFFSET = PERSONALITY_OFFSET + 0x6
+const CHECKSUM_SIZE = 2
+
 func main() {
 	fmt.Println("HELLO WORLD")
 
@@ -46,4 +52,12 @@ func main() {
 
 	r := char_encoder.Char(0x003b)
 	fmt.Printf("'%s'\n", r)
+
+	personality := binary.LittleEndian.Uint32(buf[PERSONALITY_OFFSET:PERSONALITY_OFFSET + PERSONALITY_SIZE])
+	shiftValue := ((personality & 0x3e000) >> 0xd) % 24
+
+	fmt.Printf("personality value: %d\n", shiftValue)
+
+	checksum := binary.LittleEndian.Uint16(buf[CHECKSUM_OFFSET:CHECKSUM_OFFSET + CHECKSUM_SIZE])
+	fmt.Println(checksum)
 }
