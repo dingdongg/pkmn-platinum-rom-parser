@@ -21,6 +21,35 @@ type PRNG struct {
 	PrevResult uint
 }
 
+type UnshuffleInfo struct {
+	ShuffledPos [4]int
+	Displacements [4]int
+}
+
+/*
+
+ex. ACDB -> ADBC
+A -> move 0 to the right
+B -> move 3 to the right (wrap around)
+C -> move 2 to the right
+D -> move 3 to the right (wrap around)
+
+ACDB, [0, 3, 2, 3]
+[0, 3, 1, 2], [0, 3, 2, 3]
+
+to get block A (represented as ShuffledPos[0]), 
+(ShuffledPos[0] + Displacements[0]) % 4 = 0 (un-shuffled position)
+
+to get block B (ShuffledPos[1]),
+(ShuffledPos[1] + Displacements[1]) % 4 = (3 + 3) % 4 = 2 (unshuffled position)
+
+to get block C (ShuffledPos[2]),
+(ShuffledPos[2] + Displacements[2]) % 4 = (1 + 2) % 4 = 3 (unshuffled position)
+
+to get block D (ShuffledPos[3]),
+(2 + 3) % 4 = 1
+*/
+
 func Init(checksum uint16, personality uint32) PRNG {
 	return PRNG{checksum, personality, 0}
 }
@@ -39,9 +68,18 @@ func (prng *PRNG) Decrypt(word []byte) uint16 {
 }
 
 func (prng *PRNG) DecryptPokemons(ciphertext []byte) {
+	var plaintext_buf []byte
+
+	// 1. XOR to get plaintext words
 	for i := 0x8; i < 0x87; i += 0x2 {
 		// ...
+		word := binary.LittleEndian.Uint16(ciphertext[i:i + 2])
+		plaintext := word ^ prng.Next()
+		plaintext_buf = append(plaintext_buf, byte(plaintext & 0x00FF), byte(plaintext & 0xFF00))
 	}
+
+	// 2. de-shuffle
+
 }
 /*
 
