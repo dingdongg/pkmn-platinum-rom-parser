@@ -96,28 +96,31 @@ eg. get block C -> unshuffled[2] = 3 --> 0x8 + (3 * 0x20) = 0x63 (starting posit
 
 questions i still have:
 - are the decrypted values just represented as little endian? or big? (hopefully LE, since that's what it seems like the ROM stuck to thus far)
-
+	- RESOLVED: little endian seems to work
 */
 
 func (usi UnshuffleInfo) UnshuffledPos(block int) uint {
+	fmt.Println("block: ", block)
 	metadataOffset := uint(0x8)
-	startAddr := uint((usi.ShuffledPos[block] + usi.Displacements[block]) % 4)
+	startAddr := uint(usi.Displacements[block] % 4)
+	res := metadataOffset + (startAddr * BLOCK_SIZE_BYTES)
+	fmt.Printf("0x%x\n", res)
 	return metadataOffset + (startAddr * BLOCK_SIZE_BYTES)
 } 
 
 func Init(checksum uint16, personality uint32) PRNG {
-	return PRNG{checksum, personality, 0}
+	return PRNG{checksum, personality, uint(checksum)}
 }
 
 func (prng *PRNG) Next() uint16 {
-	result := 0x41C64E6D * prng.PrevResult + 0x6073
-	result >>= 16
+	result := 0x041C64E6D * prng.PrevResult + 0x06073
 	prng.PrevResult = result
-	return uint16(result)
+	result >>= 16
+	return uint16(result & 0xFFFF)
 }
 
-func getPokemonBlock(buf []byte, block int, personality int) []byte {
-	shiftValue := ((personality & 0x3E000) >> 0xD) % 24
+func getPokemonBlock(buf []byte, block int, personality uint32) []byte {
+	shiftValue := ((personality & 0x03E000) >> 0x0D) % 24
 	unshuffleInfo := unshuffleTable[shiftValue]
 	startAddr := unshuffleInfo.UnshuffledPos(block)
 	blockStart := buf[startAddr:startAddr + BLOCK_SIZE_BYTES]
@@ -130,10 +133,13 @@ func (prng *PRNG) DecryptPokemons(ciphertext []byte) {
 
 	// 1. XOR to get plaintext words
 	for i := 0x8; i < 0x87; i += 0x2 {
-		// ...
-		word := binary.BigEndian.Uint16(ciphertext[i:i + 2])
+		// word := binary.BigEndian.Uint16(ciphertext[i:i + 2])
+		word := binary.LittleEndian.Uint16(ciphertext[i:i + 2])
 		plaintext := word ^ prng.Next()
-		plaintext_buf = append(plaintext_buf, byte(plaintext & 0x00FF), byte(plaintext & 0xFF00))
+		littleByte := byte(plaintext & 0x00FF)
+		bigByte := byte((plaintext >> 8) & 0x00FF)
+		plaintext_buf = append(plaintext_buf, littleByte, bigByte)
+		// plaintext_buf = append(plaintext_buf, byte((plaintext >> 8) & 0x00FF), byte(plaintext & 0x00FF))
 	}
 
 	plaintext_buf = append(ciphertext[:8], plaintext_buf...)
@@ -141,18 +147,23 @@ func (prng *PRNG) DecryptPokemons(ciphertext []byte) {
 	fmt.Printf("% x\n", plaintext_buf)
 
 	// 2. de-shuffle
-	personalityIndex := ((prng.Personality & 0x3E000) >> 0xD) % 24
-	unshuffleInfo := unshuffleTable[personalityIndex]
+	blockA := getPokemonBlock(plaintext_buf, A, prng.Personality)
 
-	startA := unshuffleInfo.UnshuffledPos(A)
-	blockA := plaintext_buf[startA:startA + BLOCK_SIZE_BYTES]
+	hpEVOffset := 0x10
+	attackEVOffset := 0x11
+	defenseEVOffset := 0x12
+	speedEVOffset := 0x13
+	specialAtkEVOffset := 0x14
+	specialDefEVOffset := 0x15
+
+	fmt.Printf(
+		"Stats:\n\t- HP:  %d\n\t- ATK: %d\n\t- DEF: %d\n\t- SpA: %d\n\t- SpD: %d\n\t- SPE: %d\n",
+		blockA[hpEVOffset], blockA[attackEVOffset],
+		blockA[defenseEVOffset], blockA[specialAtkEVOffset],
+		blockA[specialDefEVOffset], blockA[speedEVOffset],
+	)
 
 	// fmt.Printf("start addr for block A: %x\n", startA)
-	// fmt.Printf("% x\n", blockA)
-
-	natPokedexId := binary.LittleEndian.Uint16(blockA[:0x2])
-
-	fmt.Printf("national dex ID: %d\n", natPokedexId)
 }
 /*
 

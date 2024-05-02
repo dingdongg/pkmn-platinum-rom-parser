@@ -61,10 +61,9 @@ func main() {
 	fmt.Printf("personality value: %d\n", shiftValue)
 
 	checksum := binary.LittleEndian.Uint16(buf[CHECKSUM_OFFSET:CHECKSUM_OFFSET + CHECKSUM_SIZE])
-	fmt.Println(checksum)
 
 	// shuffler.Extract()
 	prng := prng.Init(checksum, personality)
-	
+
 	prng.DecryptPokemons(buf[PERSONALITY_OFFSET:])
 }
