@@ -1,6 +1,7 @@
 package prng
 
 import (
+	"dingdongg/pkmn-platinum-rom-parser/char_encoder"
 	"encoding/binary"
 	"fmt"
 )
@@ -37,6 +38,7 @@ const (
 )
 
 const BLOCK_SIZE_BYTES uint = 32
+const POKEMON_STRUCTURE_SIZE uint = 236
 
 // populated with results from the shuffler package!
 var unshuffleTable [24]UnshuffleInfo = [24]UnshuffleInfo{
@@ -116,7 +118,8 @@ func (prng *PRNG) Next() uint16 {
 	result := 0x041C64E6D * prng.PrevResult + 0x06073
 	prng.PrevResult = result
 	result >>= 16
-	return uint16(result & 0xFFFF)
+	// return the upper 16 bits only for external use; internally, all bits should be held for future calls
+	return uint16(result & 0xFFFF) 
 }
 
 func getPokemonBlock(buf []byte, block int, personality uint32) []byte {
@@ -148,6 +151,23 @@ func (prng *PRNG) DecryptPokemons(ciphertext []byte) {
 
 	// 2. de-shuffle
 	blockA := getPokemonBlock(plaintext_buf, A, prng.Personality)
+	blockC := getPokemonBlock(plaintext_buf, C, prng.Personality)
+
+	fmt.Printf("% x\n", blockC)
+
+	pokemonNameLength := 22
+	name := ""
+
+	for i := 0; i < pokemonNameLength; i += 2 {
+		charIndex := binary.LittleEndian.Uint16(blockC[i:i + 2])
+		str, err := char_encoder.Char(charIndex)
+		if err != nil { 
+			break
+		}
+		name += str
+	}
+
+	fmt.Printf("Pokemon: '%s'\n", name)
 
 	hpEVOffset := 0x10
 	attackEVOffset := 0x11
@@ -164,6 +184,12 @@ func (prng *PRNG) DecryptPokemons(ciphertext []byte) {
 	)
 
 	// fmt.Printf("start addr for block A: %x\n", startA)
+}
+
+func (prng *PRNG) GetPokemon(ciphertext []byte, partyIndex uint) {
+	offset := partyIndex * POKEMON_STRUCTURE_SIZE
+
+	prng.DecryptPokemons(ciphertext[offset:])
 }
 /*
 

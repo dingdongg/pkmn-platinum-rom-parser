@@ -7,9 +7,7 @@ import (
 	"log"
 	"os"
 
-	"dingdongg/pkmn-platinum-rom-parser/char_encoder"
 	"dingdongg/pkmn-platinum-rom-parser/prng"
-	// "dingdongg/pkmn-platinum-rom-parser/prng"
 )
 
 const CHUNK_SIZE = 1576
@@ -52,9 +50,6 @@ func main() {
 		fmt.Println("FEMALE")
 	}
 
-	r := char_encoder.Char(0x003b)
-	fmt.Printf("'%s'\n", r)
-
 	personality := binary.LittleEndian.Uint32(buf[PERSONALITY_OFFSET:PERSONALITY_OFFSET + PERSONALITY_SIZE])
 	shiftValue := ((personality & 0x3e000) >> 0xd) % 24
 
@@ -62,8 +57,10 @@ func main() {
 
 	checksum := binary.LittleEndian.Uint16(buf[CHECKSUM_OFFSET:CHECKSUM_OFFSET + CHECKSUM_SIZE])
 
-	// shuffler.Extract()
-	prng := prng.Init(checksum, personality)
+	prng := prng.Init(checksum, personality) // need to get different checksums/personalities PER POKEMON
 
-	prng.DecryptPokemons(buf[PERSONALITY_OFFSET:])
+	// prng.DecryptPokemons(buf[PERSONALITY_OFFSET:])
+	for i := uint(0); i < 6; i++ {
+		prng.GetPokemon(buf[PERSONALITY_OFFSET:], i)
+	}
 }
