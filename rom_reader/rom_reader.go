@@ -52,15 +52,15 @@ questions i still have:
 */
 
 type UnshuffleInfo struct {
-	ShuffledPos [4]int
-	Displacements [4]int
+	ShuffledPos [4]uint
+	OriginalPos [4]uint
 }
 
 const (
-	A = iota
-	B = iota
-	C = iota
-	D = iota
+	A uint = iota
+	B uint = iota
+	C uint = iota
+	D uint = iota
 )
 
 const BLOCK_SIZE_BYTES uint = 32
@@ -68,30 +68,30 @@ const POKEMON_STRUCTURE_SIZE uint = 236
 
 // populated with results from the shuffler package!
 var unshuffleTable [24]UnshuffleInfo = [24]UnshuffleInfo{
-	{ [4]int{A, B, C, D}, [4]int{A, B, C, D} }, // ABCD ABCD
-	{ [4]int{A, B, D, C}, [4]int{A, B, D, C} }, // ABDC ABDC
-	{ [4]int{A, C, B, D}, [4]int{A, C, B, D} }, // ACBD ACBD
-	{ [4]int{A, C, D, B}, [4]int{A, D, B, C} }, // ACDB ADBC
-	{ [4]int{A, D, B, C}, [4]int{A, C, D, B} }, // ADBC ACDB
-	{ [4]int{A, D, C, B}, [4]int{A, D, C, B} }, // ADCB ADCB
-	{ [4]int{B, A, C, D}, [4]int{B, A, C, D} }, // BACD BACD
-	{ [4]int{B, A, D, C}, [4]int{B, A, D, C} }, // BADC BADC
-	{ [4]int{B, C, A, D}, [4]int{C, A, B, D} }, // BCAD CABD
-	{ [4]int{B, C, D, A}, [4]int{D, A, B, C} }, // BCDA DABC
-	{ [4]int{B, D, A, C}, [4]int{C, A, D, B} }, // BDAC CADB
-	{ [4]int{B, D, C, A}, [4]int{D, A, C, B} }, // BDCA DACB
-	{ [4]int{C, A, B, D}, [4]int{B, C, A, D} }, // CABD BCAD
-	{ [4]int{C, A, D, B}, [4]int{B, D, A, C} }, // CADB BDAC
-	{ [4]int{C, B, A, D}, [4]int{C, B, A, D} }, // CBAD CBAD
-	{ [4]int{C, B, D, A}, [4]int{D, B, A, C} }, // CBDA DBAC
-	{ [4]int{C, D, A, B}, [4]int{C, D, A, B} }, // CDAB CDAB
-	{ [4]int{C, D, B, A}, [4]int{D, C, A, B} }, // CDBA DCAB
-	{ [4]int{D, A, B, C}, [4]int{B, C, D, A} }, // DABC BCDA
-	{ [4]int{D, A, C, B}, [4]int{B, D, C, A} }, // DACB BDCA
-	{ [4]int{D, B, A, C}, [4]int{C, B, D, A} }, // DBAC CBDA
-	{ [4]int{D, B, C, A}, [4]int{D, B, C, A} }, // DBCA DBCA
-	{ [4]int{D, C, A, B}, [4]int{C, D, B, A} }, // DCAB CDBA
-	{ [4]int{D, C, B, A}, [4]int{D, C, B, A} }, // DCBA DCBA
+	{ [4]uint{A, B, C, D}, [4]uint{A, B, C, D} }, // ABCD ABCD
+	{ [4]uint{A, B, D, C}, [4]uint{A, B, D, C} }, // ABDC ABDC
+	{ [4]uint{A, C, B, D}, [4]uint{A, C, B, D} }, // ACBD ACBD
+	{ [4]uint{A, C, D, B}, [4]uint{A, D, B, C} }, // ACDB ADBC
+	{ [4]uint{A, D, B, C}, [4]uint{A, C, D, B} }, // ADBC ACDB
+	{ [4]uint{A, D, C, B}, [4]uint{A, D, C, B} }, // ADCB ADCB
+	{ [4]uint{B, A, C, D}, [4]uint{B, A, C, D} }, // BACD BACD
+	{ [4]uint{B, A, D, C}, [4]uint{B, A, D, C} }, // BADC BADC
+	{ [4]uint{B, C, A, D}, [4]uint{C, A, B, D} }, // BCAD CABD
+	{ [4]uint{B, C, D, A}, [4]uint{D, A, B, C} }, // BCDA DABC
+	{ [4]uint{B, D, A, C}, [4]uint{C, A, D, B} }, // BDAC CADB
+	{ [4]uint{B, D, C, A}, [4]uint{D, A, C, B} }, // BDCA DACB
+	{ [4]uint{C, A, B, D}, [4]uint{B, C, A, D} }, // CABD BCAD
+	{ [4]uint{C, A, D, B}, [4]uint{B, D, A, C} }, // CADB BDAC
+	{ [4]uint{C, B, A, D}, [4]uint{C, B, A, D} }, // CBAD CBAD
+	{ [4]uint{C, B, D, A}, [4]uint{D, B, A, C} }, // CBDA DBAC
+	{ [4]uint{C, D, A, B}, [4]uint{C, D, A, B} }, // CDAB CDAB
+	{ [4]uint{C, D, B, A}, [4]uint{D, C, A, B} }, // CDBA DCAB
+	{ [4]uint{D, A, B, C}, [4]uint{B, C, D, A} }, // DABC BCDA
+	{ [4]uint{D, A, C, B}, [4]uint{B, D, C, A} }, // DACB BDCA
+	{ [4]uint{D, B, A, C}, [4]uint{C, B, D, A} }, // DBAC CBDA
+	{ [4]uint{D, B, C, A}, [4]uint{D, B, C, A} }, // DBCA DBCA
+	{ [4]uint{D, C, A, B}, [4]uint{C, D, B, A} }, // DCAB CDBA
+	{ [4]uint{D, C, B, A}, [4]uint{D, C, B, A} }, // DCBA DCBA
 }
 
 // `ciphertext` must be a slice with the first byte 
@@ -106,14 +106,14 @@ func GetPokemon(ciphertext []byte, partyIndex uint) {
 	DecryptPokemons(rand, ciphertext[offset:])
 }
 
-func (usi UnshuffleInfo) UnshuffledPos(block int) uint {
+func (usi UnshuffleInfo) UnshuffledPos(block uint) uint {
 	metadataOffset := uint(0x8)
-	startIndex := uint(usi.Displacements[block] % 4)
+	startIndex := usi.OriginalPos[block]
 	res := metadataOffset + (startIndex * BLOCK_SIZE_BYTES)
 	return res
 } 
 
-func getPokemonBlock(buf []byte, block int, personality uint32) []byte {
+func getPokemonBlock(buf []byte, block uint, personality uint32) []byte {
 	shiftValue := ((personality & 0x03E000) >> 0x0D) % 24
 	unshuffleInfo := unshuffleTable[shiftValue]
 	startAddr := unshuffleInfo.UnshuffledPos(block)
@@ -123,7 +123,7 @@ func getPokemonBlock(buf []byte, block int, personality uint32) []byte {
 }
 
 func DecryptPokemons(prng prng.PRNG, ciphertext []byte) {
-	var plaintext_buf []byte
+	plaintext_buf := ciphertext[:8]
 
 	// 1. XOR to get plaintext words
 	for i := 0x8; i < 0x87; i += 0x2 {
@@ -133,8 +133,6 @@ func DecryptPokemons(prng prng.PRNG, ciphertext []byte) {
 		bigByte := byte((plaintext >> 8) & 0x00FF)
 		plaintext_buf = append(plaintext_buf, littleByte, bigByte)
 	}
-
-	plaintext_buf = append(ciphertext[:8], plaintext_buf...)
 
 	// 2. un-shuffle
 	blockA := getPokemonBlock(plaintext_buf, A, prng.Personality)

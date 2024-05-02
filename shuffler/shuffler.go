@@ -45,7 +45,7 @@ func Extract() {
 
 func getShuffleInfo(sequence [2]string) string {
 	return fmt.Sprintf(
-		"{ [4]int{%c, %c, %c, %c}, [4]int{%c, %c, %c, %c} }, // %s %s",
+		"{ [4]uint{%c, %c, %c, %c}, [4]uint{%c, %c, %c, %c} }, // %s %s",
 		sequence[0][0], sequence[0][1], sequence[0][2], sequence[0][3],
 		sequence[1][0], sequence[1][1], sequence[1][2], sequence[1][3],
 		sequence[0], sequence[1],

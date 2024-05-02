@@ -1,11 +1,10 @@
 package main
 
 import (
+	"dingdongg/pkmn-platinum-rom-parser/rom_reader"
 	"io"
 	"log"
 	"os"
-
-	"dingdongg/pkmn-platinum-rom-parser/prng"
 )
 
 const CHUNK_SIZE = 1576
@@ -24,17 +23,17 @@ const CHECKSUM_OFFSET = PERSONALITY_OFFSET + 0x6
 const CHECKSUM_SIZE = 2
 
 func main() {
-	buf := make([]byte, CHUNK_SIZE)
+	savefile := make([]byte, CHUNK_SIZE)
 
-	file, err := os.Open("./Plat savefile")
+	file, err := os.Open("./savefiles/Pt_savefile-v2")
 	if err != nil {
 		log.Fatal("bruh")
 	}
 	defer file.Close()
 
-	io.ReadFull(file, buf)
+	io.ReadFull(file, savefile)
 
 	for i := uint(0); i < 6; i++ {
-		prng.GetPokemon(buf[PERSONALITY_OFFSET:], i)
+		rom_reader.GetPokemon(savefile[PERSONALITY_OFFSET:], i)
 	}
 }
