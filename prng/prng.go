@@ -102,12 +102,10 @@ questions i still have:
 */
 
 func (usi UnshuffleInfo) UnshuffledPos(block int) uint {
-	fmt.Println("block: ", block)
 	metadataOffset := uint(0x8)
-	startAddr := uint(usi.Displacements[block] % 4)
-	res := metadataOffset + (startAddr * BLOCK_SIZE_BYTES)
-	fmt.Printf("0x%x\n", res)
-	return metadataOffset + (startAddr * BLOCK_SIZE_BYTES)
+	startIndex := uint(usi.Displacements[block] % 4)
+	res := metadataOffset + (startIndex * BLOCK_SIZE_BYTES)
+	return res
 } 
 
 func Init(checksum uint16, personality uint32) PRNG {
@@ -147,13 +145,9 @@ func (prng *PRNG) DecryptPokemons(ciphertext []byte) {
 
 	plaintext_buf = append(ciphertext[:8], plaintext_buf...)
 
-	fmt.Printf("% x\n", plaintext_buf)
-
-	// 2. de-shuffle
+	// 2. un-shuffle
 	blockA := getPokemonBlock(plaintext_buf, A, prng.Personality)
 	blockC := getPokemonBlock(plaintext_buf, C, prng.Personality)
-
-	fmt.Printf("% x\n", blockC)
 
 	pokemonNameLength := 22
 	name := ""
@@ -183,12 +177,23 @@ func (prng *PRNG) DecryptPokemons(ciphertext []byte) {
 		blockA[specialDefEVOffset], blockA[speedEVOffset],
 	)
 
-	// fmt.Printf("start addr for block A: %x\n", startA)
+	evSum := 0
+	for i := 0; i < 6; i++ {
+		evSum += int(blockA[hpEVOffset + i])
+	}
+
+	fmt.Printf("Total EV Spenditure: %d / 510\n", evSum)
 }
 
-func (prng *PRNG) GetPokemon(ciphertext []byte, partyIndex uint) {
+// `ciphertext` must be a slice with the first byte 
+// referring to the first pokemon data structure
+func GetPokemon(ciphertext []byte, partyIndex uint) {
 	offset := partyIndex * POKEMON_STRUCTURE_SIZE
 
+	personality := binary.LittleEndian.Uint32(ciphertext[offset:offset + 4])
+	checksum := binary.LittleEndian.Uint16(ciphertext[offset + 6:offset + 8])
+
+	prng := Init(checksum, personality)
 	prng.DecryptPokemons(ciphertext[offset:])
 }
 /*
