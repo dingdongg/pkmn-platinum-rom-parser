@@ -196,17 +196,3 @@ func GetPokemon(ciphertext []byte, partyIndex uint) {
 	prng := Init(checksum, personality)
 	prng.DecryptPokemons(ciphertext[offset:])
 }
-/*
-
-shuffled			unshuffled
-ABCD				ABCD
-ADCB				ADCB
-
-Blocks A, B, C, D are 32 BYTES long 
-- address offsets ~ [0x8, 0x87]
-
-DECRYPTION ALGORITHM
-1. seed PRNG with checksum 
-2. for every 2-byte word (w) in the address offset, apply: w ^ prng.Next()
-3. unshuffle according to shuffling table found on the project pokemon website
-*/
