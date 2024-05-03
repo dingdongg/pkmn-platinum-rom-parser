@@ -1,10 +1,11 @@
-package main
+package parser
 
 import (
 	"dingdongg/pkmn-platinum-rom-parser/rom_reader"
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 const CHUNK_SIZE = 1576
@@ -22,12 +23,18 @@ const PERSONALITY_SIZE = 4
 const CHECKSUM_OFFSET = PERSONALITY_OFFSET + 0x6
 const CHECKSUM_SIZE = 2
 
-func main() {
+func Parse() {
 	savefile := make([]byte, CHUNK_SIZE)
 
-	file, err := os.Open("./savefiles/Pt_savefile-v2")
+	dir, err := os.Getwd()
 	if err != nil {
-		log.Fatal("bruh")
+		log.Fatal("failed fetching pwd: ", err)
+	}
+
+	fpath := filepath.Clean(dir + "/../pkmn-platinum-rom-parser/savefiles/Pt_savefile-v2")
+	file, err := os.Open(fpath)
+	if err != nil {
+		log.Fatal("bruh, ", err)
 	}
 	defer file.Close()
 

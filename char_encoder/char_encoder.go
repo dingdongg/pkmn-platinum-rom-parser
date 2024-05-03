@@ -5,13 +5,21 @@ import (
 	"errors"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 const END_OF_STRING uint16 = 0xFFFF
 const NULL_CHAR uint16 = 0x0
 
 func Char(index uint16) (string, error) {
-	file, err := os.ReadFile("char_encoder/table.json")
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatal("failed fetching pwd: ", err)
+	}
+
+	fpath := filepath.Clean(dir + "/../pkmn-platinum-rom-parser/char_encoder/table.json")
+	file, err := os.ReadFile(fpath)
+	
 	if err != nil {
 		log.Fatal("Error parsing char table file: ", err)
 	}
