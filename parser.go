@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"dingdongg/pkmn-platinum-rom-parser/rom_reader"
+	"github.com/dingdongg/pkmn-platinum-rom-parser/rom_reader"
 	"io"
 	"log"
 	"os"

@@ -1,8 +1,8 @@
 package rom_reader
 
 import (
-	"dingdongg/pkmn-platinum-rom-parser/char_encoder"
-	"dingdongg/pkmn-platinum-rom-parser/prng"
+	"github.com/dingdongg/pkmn-platinum-rom-parser/char_encoder"
+	"github.com/dingdongg/pkmn-platinum-rom-parser/prng"
 	"encoding/binary"
 	"fmt"
 )
