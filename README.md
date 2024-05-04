@@ -3,7 +3,9 @@
 
 Application used to parse in-game information in the Pokemon Platinum ROM for the NDS.
 
-
+## TODO
+- add unit tests for each package
+- change API so that it is more intuitive
 
 ### Credits
 ---
