@@ -25,3 +25,15 @@ func TestCharNullCharacter(t *testing.T) {
 		t.Fatalf("Null character not handled properly\n")
 	}
 }
+
+func TestCharValidChars(t *testing.T) {
+	char, err := Char(0x012E)
+
+	if err != nil {
+		t.Fatal("Unexpected error received")
+	}
+
+	if char != "D" {
+		t.Fatal("Incorrect character received")
+	}
+}
