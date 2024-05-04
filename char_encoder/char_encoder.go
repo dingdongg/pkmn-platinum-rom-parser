@@ -18,7 +18,7 @@ func Char(index uint16) (string, error) {
 	// }
 	// fmt.Println(dir)
 	// fpath := filepath.Clean(dir + "/../pkmn-platinum-rom-parser/char_encoder/table.json")
-	fpath := "table.json"
+	fpath := "char_encoder/table.json"
 	file, err := os.ReadFile(fpath)
 	
 	if err != nil {
