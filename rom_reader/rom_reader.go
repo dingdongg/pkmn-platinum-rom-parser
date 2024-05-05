@@ -51,9 +51,24 @@ questions i still have:
 	- RESOLVED: little endian seems to work
 */
 
-type UnshuffleInfo struct {
+type blockOrder struct {
 	ShuffledPos [4]uint
 	OriginalPos [4]uint
+}
+
+type EffortValues struct {
+	Hp			uint
+	Attack		uint
+	Defense 	uint
+	SpAttack	uint
+	SpDefense	uint
+	Speed		uint
+}
+
+type Pokemon struct {
+	Name 		string
+	Level		uint
+	EffortValues
 }
 
 const (
@@ -64,10 +79,10 @@ const (
 )
 
 const BLOCK_SIZE_BYTES uint = 32
-const POKEMON_STRUCTURE_SIZE uint = 236
+const PARTY_POKEMON_SIZE uint = 236
 
 // populated with results from the shuffler package!
-var unshuffleTable [24]UnshuffleInfo = [24]UnshuffleInfo{
+var unshuffleTable [24]blockOrder = [24]blockOrder{
 	{ [4]uint{A, B, C, D}, [4]uint{A, B, C, D} }, // ABCD ABCD
 	{ [4]uint{A, B, D, C}, [4]uint{A, B, D, C} }, // ABDC ABDC
 	{ [4]uint{A, C, B, D}, [4]uint{A, C, B, D} }, // ACBD ACBD
@@ -96,19 +111,19 @@ var unshuffleTable [24]UnshuffleInfo = [24]UnshuffleInfo{
 
 // `ciphertext` must be a slice with the first byte 
 // referring to the first pokemon data structure
-func GetPokemon(ciphertext []byte, partyIndex uint) {
-	offset := partyIndex * POKEMON_STRUCTURE_SIZE
+func GetPokemon(ciphertext []byte, partyIndex uint) Pokemon {
+	offset := partyIndex * PARTY_POKEMON_SIZE
 
 	personality := binary.LittleEndian.Uint32(ciphertext[offset:offset + 4])
 	checksum := binary.LittleEndian.Uint16(ciphertext[offset + 6:offset + 8])
 
 	rand := prng.Init(checksum, personality)
-	DecryptPokemons(rand, ciphertext[offset:])
+	return decryptPokemon(rand, ciphertext[offset:])
 }
 
-func (usi UnshuffleInfo) UnshuffledPos(block uint) uint {
+func (bo blockOrder) getUnshuffledPos(block uint) uint {
 	metadataOffset := uint(0x8)
-	startIndex := usi.OriginalPos[block]
+	startIndex := bo.OriginalPos[block]
 	res := metadataOffset + (startIndex * BLOCK_SIZE_BYTES)
 	return res
 } 
@@ -116,13 +131,28 @@ func (usi UnshuffleInfo) UnshuffledPos(block uint) uint {
 func getPokemonBlock(buf []byte, block uint, personality uint32) []byte {
 	shiftValue := ((personality & 0x03E000) >> 0x0D) % 24
 	unshuffleInfo := unshuffleTable[shiftValue]
-	startAddr := unshuffleInfo.UnshuffledPos(block)
+	startAddr := unshuffleInfo.getUnshuffledPos(block)
 	blockStart := buf[startAddr:startAddr + BLOCK_SIZE_BYTES]
 
 	return blockStart
 }
 
-func DecryptPokemons(prng prng.PRNG, ciphertext []byte) {
+// first block of ciphertext points to offset 0x88 in a party pokemon block
+// TODO: needs some validation/testing
+func getPokemonLevel(ciphertext []byte, personality uint32) uint {
+	bsprng := prng.InitBattleStatPRNG(personality)
+
+	var decrypted uint16
+
+	for i := 0; i < 6; i += 2 {
+		decrypted = bsprng.Next() ^ binary.LittleEndian.Uint16(ciphertext[i:i + 2])
+	}
+
+	fmt.Printf("% x\n", decrypted)
+	return uint(decrypted & 0xFF)
+}
+
+func decryptPokemon(prng prng.PRNG, ciphertext []byte) Pokemon {
 	plaintext_buf := ciphertext[:8]
 
 	// 1. XOR to get plaintext words
@@ -152,6 +182,8 @@ func DecryptPokemons(prng prng.PRNG, ciphertext []byte) {
 
 	fmt.Printf("Pokemon: '%s'\n", name)
 
+	level := getPokemonLevel(ciphertext[0x88:], prng.Personality)
+
 	hpEVOffset := 0x10
 	attackEVOffset := 0x11
 	defenseEVOffset := 0x12
@@ -172,4 +204,17 @@ func DecryptPokemons(prng prng.PRNG, ciphertext []byte) {
 	}
 
 	fmt.Printf("Total EV Spenditure: %d / 510\n", evSum)
+
+	return Pokemon{
+		name,
+		level,
+		EffortValues{
+			uint(blockA[hpEVOffset]),
+			uint(blockA[attackEVOffset]),
+			uint(blockA[defenseEVOffset]),
+			uint(blockA[specialAtkEVOffset]),
+			uint(blockA[specialDefEVOffset]),
+			uint(blockA[speedEVOffset]),
+		},
+	}
 }
