@@ -40,7 +40,7 @@ func TestNextInternals(t *testing.T) {
 	prng := Init(checksum, personality)
 
 	numCalls := 3
-	expectedValues := []uint{ 0x6073, 0x18C7E97E7B6A, 0xF47F2B6C52713895 }
+	expectedValues := []uint{0x6073, 0x18C7E97E7B6A, 0xF47F2B6C52713895}
 
 	for i := 0; i < numCalls; i++ {
 		prng.Next()

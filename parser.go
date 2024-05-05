@@ -20,7 +20,7 @@ const CHECKSUM_OFFSET = PERSONALITY_OFFSET + 0x6
 const CHECKSUM_SIZE = 2
 
 func Parse(savefile []byte) []rom_reader.Pokemon {
-	// TODO: savefile size/format validation 
+	// TODO: savefile size/format validation
 	// for format validation, could probably use checksums
 
 	// TODO: only edit the most recent savefiel

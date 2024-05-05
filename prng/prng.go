@@ -1,13 +1,13 @@
 package prng
 
 type PRNG struct {
-	Checksum uint16
+	Checksum    uint16
 	Personality uint32
-	PrevResult uint
+	PrevResult  uint
 }
 
 type BattleStatPRNG struct {
-	PrevResult uint
+	PrevResult  uint
 	Personality uint32
 }
 
@@ -16,11 +16,11 @@ func InitBattleStatPRNG(personality uint32) BattleStatPRNG {
 }
 
 func (bsprng *BattleStatPRNG) Next() uint16 {
-	result := 0x041C64E6D * bsprng.PrevResult + 0x06073
+	result := 0x041C64E6D*bsprng.PrevResult + 0x06073
 	bsprng.PrevResult = result
 	result >>= 16
 	// return the upper 16 bits only for external use; internally, all bits should be held for future calls
-	return uint16(result & 0xFFFF) 
+	return uint16(result & 0xFFFF)
 }
 
 func Init(checksum uint16, personality uint32) PRNG {
@@ -28,9 +28,9 @@ func Init(checksum uint16, personality uint32) PRNG {
 }
 
 func (prng *PRNG) Next() uint16 {
-	result := 0x041C64E6D * prng.PrevResult + 0x06073
+	result := 0x041C64E6D*prng.PrevResult + 0x06073
 	prng.PrevResult = result
 	result >>= 16
 	// return the upper 16 bits only for external use; internally, all bits should be held for future calls
-	return uint16(result & 0xFFFF) 
+	return uint16(result & 0xFFFF)
 }
