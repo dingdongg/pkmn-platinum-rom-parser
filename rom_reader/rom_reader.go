@@ -21,11 +21,19 @@ type EffortValues struct {
 	Speed     uint
 }
 
-// TODO: add held item + raw stats
+type BattleStat struct {
+	Level 	uint
+	Stats	EffortValues
+}
+
 type Pokemon struct {
+	PokedexId uint16
 	Name  string
-	Level uint
-	EffortValues
+	BattleStat
+	HeldItemId uint16 // just return the in-memory value for now, figure out the mapping later
+	Nature	string
+	AbilityId uint
+	EVs		EffortValues
 }
 
 const (
@@ -37,6 +45,34 @@ const (
 
 const BLOCK_SIZE_BYTES uint = 32
 const PARTY_POKEMON_SIZE uint = 236
+
+var natureTable [25]string = [25]string{
+	"Hardy",
+	"Lonely",
+	"Brave",
+	"Adamant",
+	"Naughty",
+	"Bold",
+	"Docile",
+	"Relaxed",
+	"Impish",
+	"Lax",
+	"Timid",
+	"Hasty",
+	"Serious",
+	"Jolly",
+	"Naive",
+	"Modest",
+	"Mild",
+	"Quiet",
+	"Bashful",
+	"Rash",
+	"Calm",
+	"Gentle",
+	"Sassy",
+	"Careful",
+	"Quirky",
+}
 
 // populated with results from the shuffler package!
 var unshuffleTable [24]blockOrder = [24]blockOrder{
@@ -96,17 +132,28 @@ func getPokemonBlock(buf []byte, block uint, personality uint32) []byte {
 
 // first block of ciphertext points to offset 0x88 in a party pokemon block
 // TODO: needs some validation/testing
-func getPokemonLevel(ciphertext []byte, personality uint32) uint {
+func getPokemonBattleStats(ciphertext []byte, personality uint32) BattleStat {
 	bsprng := prng.InitBattleStatPRNG(personality)
 
-	var decrypted uint16
+	var plaintext []byte
 
-	for i := 0; i < 6; i += 2 {
-		decrypted = bsprng.Next() ^ binary.LittleEndian.Uint16(ciphertext[i:i+2])
+	for i := 0; i < 0x14; i += 2 {
+		decrypted := bsprng.Next() ^ binary.LittleEndian.Uint16(ciphertext[i:i+2])
+		plaintext = append(plaintext, byte(decrypted & 0xFF), byte((decrypted >> 8) & 0xFF))
 	}
 
-	fmt.Printf("% x\n", decrypted)
-	return uint(decrypted & 0xFF)
+	level := uint(plaintext[4])
+
+	stats := EffortValues{
+		uint(binary.LittleEndian.Uint16(plaintext[0x8 : 0xA])),
+		uint(binary.LittleEndian.Uint16(plaintext[0xA : 0xC])),
+		uint(binary.LittleEndian.Uint16(plaintext[0xC : 0xE])),
+		uint(binary.LittleEndian.Uint16(plaintext[0x10 : 0x12])),
+		uint(binary.LittleEndian.Uint16(plaintext[0x12 : 0x14])),
+		uint(binary.LittleEndian.Uint16(plaintext[0xE : 0x10])),
+	}
+
+	return BattleStat{level, stats}
 }
 
 func decryptPokemon(prng prng.PRNG, ciphertext []byte) Pokemon {
@@ -125,6 +172,11 @@ func decryptPokemon(prng prng.PRNG, ciphertext []byte) Pokemon {
 	blockA := getPokemonBlock(plaintext_buf, A, prng.Personality)
 	blockC := getPokemonBlock(plaintext_buf, C, prng.Personality)
 
+	dexId := binary.LittleEndian.Uint16(blockA[:2])
+	heldItem := binary.LittleEndian.Uint16(blockA[2:4])
+	nature := natureTable[prng.Personality % 25]
+	ability := binary.LittleEndian.Uint16(blockA[0xD:0xF])
+
 	pokemonNameLength := 22
 	name := ""
 
@@ -139,7 +191,7 @@ func decryptPokemon(prng prng.PRNG, ciphertext []byte) Pokemon {
 
 	fmt.Printf("Pokemon: '%s'\n", name)
 
-	level := getPokemonLevel(ciphertext[0x88:], prng.Personality)
+	battleStats := getPokemonBattleStats(ciphertext[0x88:], prng.Personality)
 
 	hpEVOffset := 0x10
 	attackEVOffset := 0x11
@@ -163,8 +215,12 @@ func decryptPokemon(prng prng.PRNG, ciphertext []byte) Pokemon {
 	fmt.Printf("Total EV Spenditure: %d / 510\n", evSum)
 
 	return Pokemon{
+		dexId,
 		name,
-		level,
+		battleStats,
+		heldItem,
+		nature,
+		uint(ability),
 		EffortValues{
 			uint(blockA[hpEVOffset]),
 			uint(blockA[attackEVOffset]),
