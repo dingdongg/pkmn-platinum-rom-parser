@@ -1,29 +1,22 @@
 package parser
 
 import (
+	"fmt"
+
 	"github.com/dingdongg/pkmn-platinum-rom-parser/rom_reader"
+	"github.com/dingdongg/pkmn-platinum-rom-parser/validator"
 )
 
-const CHUNK_SIZE = 1576
-
-const MONEY_OFFSET = 0x7c
-const MONEY_SIZE = 4
-
-const GENDER_OFFSET = 0x80
-const GENDER_SIZE = 1
-
-// these offsets/sizes are unique to every party pokemon
-const PERSONALITY_OFFSET = 0xa0
-const PERSONALITY_SIZE = 4
-
-const CHECKSUM_OFFSET = PERSONALITY_OFFSET + 0x6
-const CHECKSUM_SIZE = 2
+const PERSONALITY_OFFSET = 0xA0
 
 func Parse(savefile []byte) []rom_reader.Pokemon {
-	// TODO: savefile size/format validation
-	// for format validation, could probably use checksums
+	valid := validator.Validate(savefile)
 
-	// TODO: only edit the most recent savefiel
+	if valid {
+		fmt.Println("SAVEFILE IS VALID")
+	}
+
+	// TODO: only read from/edit the most recent savefiel
 	var res []rom_reader.Pokemon
 
 	for i := uint(0); i < 6; i++ {

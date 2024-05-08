@@ -2,7 +2,10 @@ package rom_reader
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"log"
+
 	"github.com/dingdongg/pkmn-platinum-rom-parser/char_encoder"
 	"github.com/dingdongg/pkmn-platinum-rom-parser/prng"
 )
@@ -12,7 +15,7 @@ type blockOrder struct {
 	OriginalPos [4]uint
 }
 
-type EffortValues struct {
+type Stats struct {
 	Hp        uint
 	Attack    uint
 	Defense   uint
@@ -22,18 +25,18 @@ type EffortValues struct {
 }
 
 type BattleStat struct {
-	Level 	uint
-	Stats	EffortValues
+	Level uint
+	Stats Stats
 }
 
 type Pokemon struct {
 	PokedexId uint16
-	Name  string
+	Name      string
 	BattleStat
 	HeldItemId uint16 // just return the in-memory value for now, figure out the mapping later
-	Nature	string
-	AbilityId uint
-	EVs		EffortValues
+	Nature     string
+	AbilityId  uint
+	EVs        Stats
 }
 
 const (
@@ -114,6 +117,7 @@ func GetPokemon(ciphertext []byte, partyIndex uint) Pokemon {
 	return decryptPokemon(rand, ciphertext[offset:])
 }
 
+// block is one of 0, 1, 2, 3
 func (bo blockOrder) getUnshuffledPos(block uint) uint {
 	metadataOffset := uint(0x8)
 	startIndex := bo.OriginalPos[block]
@@ -121,60 +125,75 @@ func (bo blockOrder) getUnshuffledPos(block uint) uint {
 	return res
 }
 
-func getPokemonBlock(buf []byte, block uint, personality uint32) []byte {
-	shiftValue := ((personality & 0x03E000) >> 0x0D) % 24
-	unshuffleInfo := unshuffleTable[shiftValue]
-	startAddr := unshuffleInfo.getUnshuffledPos(block)
-	blockStart := buf[startAddr : startAddr+BLOCK_SIZE_BYTES]
+func getPokemonBlock(buf []byte, block uint, personality uint32) ([]byte, error) {
+	if block >= A && block <= D {
+		shiftValue := ((personality & 0x03E000) >> 0x0D) % 24
+		unshuffleInfo := unshuffleTable[shiftValue]
+		startAddr := unshuffleInfo.getUnshuffledPos(block)
+		blockChunk := buf[startAddr : startAddr+BLOCK_SIZE_BYTES]
 
-	return blockStart
+		return blockChunk, nil
+	}
+
+	return make([]byte, 0), errors.New("invalid block index")
 }
 
 // first block of ciphertext points to offset 0x88 in a party pokemon block
 // TODO: needs some validation/testing
 func getPokemonBattleStats(ciphertext []byte, personality uint32) BattleStat {
 	bsprng := prng.InitBattleStatPRNG(personality)
-
 	var plaintext []byte
 
 	for i := 0; i < 0x14; i += 2 {
 		decrypted := bsprng.Next() ^ binary.LittleEndian.Uint16(ciphertext[i:i+2])
-		plaintext = append(plaintext, byte(decrypted & 0xFF), byte((decrypted >> 8) & 0xFF))
+		plaintext = append(plaintext, byte(decrypted&0xFF), byte((decrypted>>8)&0xFF))
 	}
 
-	level := uint(plaintext[4])
-
-	stats := EffortValues{
-		uint(binary.LittleEndian.Uint16(plaintext[0x8 : 0xA])),
-		uint(binary.LittleEndian.Uint16(plaintext[0xA : 0xC])),
-		uint(binary.LittleEndian.Uint16(plaintext[0xC : 0xE])),
-		uint(binary.LittleEndian.Uint16(plaintext[0x10 : 0x12])),
-		uint(binary.LittleEndian.Uint16(plaintext[0x12 : 0x14])),
-		uint(binary.LittleEndian.Uint16(plaintext[0xE : 0x10])),
+	stats := Stats{
+		uint(binary.LittleEndian.Uint16(plaintext[0x8:0xA])),
+		uint(binary.LittleEndian.Uint16(plaintext[0xA:0xC])),
+		uint(binary.LittleEndian.Uint16(plaintext[0xC:0xE])),
+		uint(binary.LittleEndian.Uint16(plaintext[0x10:0x12])),
+		uint(binary.LittleEndian.Uint16(plaintext[0x12:0x14])),
+		uint(binary.LittleEndian.Uint16(plaintext[0xE:0x10])),
 	}
 
-	return BattleStat{level, stats}
+	return BattleStat{uint(plaintext[4]), stats}
 }
 
 func decryptPokemon(prng prng.PRNG, ciphertext []byte) Pokemon {
 	plaintext_buf := ciphertext[:8]
+	plaintext_sum := uint16(0)
 
 	// 1. XOR to get plaintext words
 	for i := 0x8; i < 0x87; i += 0x2 {
 		word := binary.LittleEndian.Uint16(ciphertext[i : i+2])
 		plaintext := word ^ prng.Next()
+		plaintext_sum += plaintext
 		littleByte := byte(plaintext & 0x00FF)
 		bigByte := byte((plaintext >> 8) & 0x00FF)
 		plaintext_buf = append(plaintext_buf, littleByte, bigByte)
 	}
 
-	// 2. un-shuffle
-	blockA := getPokemonBlock(plaintext_buf, A, prng.Personality)
-	blockC := getPokemonBlock(plaintext_buf, C, prng.Personality)
+	if plaintext_sum == prng.Checksum {
+		fmt.Println("checksum is valid!")
+	} else {
+		fmt.Printf("Checksum invalid. expected 0x%x, got 0x%x\n", prng.Checksum, plaintext_sum)
+	}
+
+	blockA, err := getPokemonBlock(plaintext_buf, A, prng.Personality)
+	if err != nil {
+		log.Fatal("Unexpected error while parsing block A: ", err)
+	}
+
+	blockC, err := getPokemonBlock(plaintext_buf, C, prng.Personality)
+	if err != nil {
+		log.Fatal("Unexpected error while parsing block C: ", err)
+	}
 
 	dexId := binary.LittleEndian.Uint16(blockA[:2])
 	heldItem := binary.LittleEndian.Uint16(blockA[2:4])
-	nature := natureTable[prng.Personality % 25]
+	nature := natureTable[prng.Personality%25]
 	ability := binary.LittleEndian.Uint16(blockA[0xD:0xF])
 
 	pokemonNameLength := 22
@@ -221,7 +240,7 @@ func decryptPokemon(prng prng.PRNG, ciphertext []byte) Pokemon {
 		heldItem,
 		nature,
 		uint(ability),
-		EffortValues{
+		Stats{
 			uint(blockA[hpEVOffset]),
 			uint(blockA[attackEVOffset]),
 			uint(blockA[defenseEVOffset]),
