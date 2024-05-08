@@ -79,13 +79,13 @@ func TestGetPokemonBlock(t *testing.T) {
 }
 
 func TestGetPokemon(t *testing.T) {
-	savefile, err := os.ReadFile("../savefiles/Pt_savefile-v2")
+	// file takes care of the personality offset
+	savefile, err := os.ReadFile("./mock_pokemon_data")
 	if err != nil {
 		t.Fatal("Unexpected error ", err)
 	}
 
-	personalityOffset := 0xA0
-	firstPokemon := GetPokemon(savefile[personalityOffset:], 0)
+	firstPokemon := GetPokemon(savefile[:], 0)
 
 	expectedPokemon := Pokemon{
 		461,
