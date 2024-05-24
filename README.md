@@ -1,5 +1,7 @@
-# Pokemon Platinum ROM Parser
+# Pokemon Platinum ROM Parser (ARCHIVED)
 Application used to parse in-game information in the Pokemon Platinum ROM for the NDS.
+
+****This repository has been archived. Newer version of this module will be published [here](https://github.com/dingdongg/pkmn-rom-parser)****
 
 ## TODO
 - extend support for other gen. 4/5 games
